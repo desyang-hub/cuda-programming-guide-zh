@@ -75,6 +75,7 @@ code_that_launches_kernels_on_streams(strm1, strm2); // 此函数中抽象的内
 
 // 清理代码未显示
 ```
+{% endraw %}
 
 自 CUDA 13.1 起，可以使用绿色上下文控制给定内核可以访问的 SM 数量。下面的代码片段展示了这有多么容易。只需添加几行代码且无需修改任何内核，您就可以控制在这些不同流上启动的内核可以使用的 SM 资源。
 
@@ -124,6 +125,8 @@ code_that_launches_kernels_on_streams(strm1, strm2);
 
 // 清理代码未显示
 ```
+{% endraw %}
+
 多种执行上下文 API（其中一些已在之前的示例中展示）需要一个显式的 `cudaExecutionContext_t` 句柄，因此会忽略调用线程当前的上下文。迄今为止，不使用驱动 API 的 CUDA 运行时用户默认只会与通过 `cudaSetDevice()` 隐式设置为线程当前上下文的主上下文进行交互。这种向显式基于上下文的编程方式的转变，提供了更易于理解的语义，并且与之前依赖线程本地状态（TLS）的隐式基于上下文的编程相比，可能带来额外的好处。
 
 以下章节将详细解释前面代码片段中展示的所有步骤。
@@ -145,6 +148,7 @@ struct {
      };
  };
 ```
+{% endraw %}
 
 支持的有效资源类型是 `cudaDevResourceTypeSm`、`cudaDevResourceTypeWorkqueueConfig` 和 `cudaDevResourceTypeWorkqueue`，而 `cudaDevResourceTypeInvalid` 标识无效的资源类型。
 
@@ -215,6 +219,7 @@ std::cout << "初始 SM 资源: " << initial_SM_resources.sm.smCount << " 个 SM
 std::cout << "最小 SM 分区大小: " <<  initial_SM_resources.sm.minSmPartitionSize << " 个 SM" << std::endl;
 std::cout << "SM 协同调度对齐: " <<  initial_SM_resources.sm.smCoscheduledAlignment << " 个 SM" << std::endl;
 ```
+{% endraw %}
 
 也可以获取可用的工作队列配置资源，如下面的代码片段所示。
 
@@ -232,6 +237,7 @@ std::cout << "初始 WQ 配置资源: " << std::endl;
 std::cout << "  - WQ 并发限制: " << initial_WQ_config_resources.wqConfig.wqConcurrencyLimit << std::endl;
 std::cout << "  - WQ 共享范围: " << initial_WQ_config_resources.wqConfig.sharingScope << std::endl;
 ```
+{% endraw %}
 
 在成功的 `cudaDeviceGetDevResource` 调用之后，用户可以查看此资源的 `wqConcurrencyLimit`。当起始点是 GPU 设备时，`wqConcurrencyLimit` 将与 `CUDA_DEVICE_MAX_CONNECTIONS` 环境变量或其默认值匹配。
 
@@ -285,6 +291,7 @@ std::cout << "Split " << avail_resources.sm.smCount << " SMs into " << actual_sp
           << "with " << actual_split_result[0].sm.smCount << " each " \
           << "and a remaining group with " << remaining_partition.sm.smCount << " SMs" << std::endl;
 ```
+{% endraw %}
 请注意：
 
 - 可以使用 `result=nullptr` 来查询将创建的组数
@@ -472,6 +479,7 @@ cudaDevSmResourceGroupParams group_params_use_case[2] = {{.smCount = X, .cosched
                                                          {.smCount = Y, .coscheduledSmCount=0, .preferredCoscheduledSmCount = 0, .flags = 0}}
 CUDA_CHECK(cudaDevSmResourceSplit(&result_use_case[0], nbGroups, &initial_GPU_SM_resources, remainder, default_split_flags, &group_params_use_case[0]));
 ```
+{% endraw %}
 |  |  |  |  | groupParams[i] 字段（i 按升序显示；见最后一列） | i |  |  |  |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | # | 目标/用例 | nbGroups | remainder | smCount | coscheduledSmCount | preferredCoscheduledSmCount | flags |  |
@@ -539,6 +547,7 @@ split_result[1].wqConfig.device = 0; // 假设设备序号为 0
 split_result[1].wqConfig.sharingScope = cudaDevWorkqueueConfigScopeGreenCtxBalanced;
 split_result[1].wqConfig.wqConcurrencyLimit = 4;
 ```
+{% endraw %}
 
 工作队列并发限制为 4 是向驱动程序提示用户期望最多有四个并发的流序工作负载。驱动程序将尝试在可能的情况下分配工作队列以遵循此提示。
 
@@ -560,6 +569,7 @@ cudaDevResource actual_split_result[5] = {};
 cudaDevResourceDesc_t resource_desc;
 CUDA_CHECK(cudaDevResourceGenerateDesc(&resource_desc, &actual_split_result[2], 3));
 ```
+{% endraw %}
 
 也支持组合不同类型的资源。例如，可以生成一个同时包含 SM 和工作队列资源的描述符。
 
@@ -593,6 +603,7 @@ cudaDevResourceDesc_t resource_desc {};
 cudaExecutionContext_t green_ctx {};
 CUDA_CHECK(cudaGreenCtxCreate(&green_ctx, resource_desc, current_device, 0));
 ```
+{% endraw %}
 
 成功创建绿色上下文后，用户可以通过在该执行上下文上为每种资源类型调用 `cudaExecutionCtxGetDevResource` 来验证其资源。
 
@@ -619,6 +630,7 @@ CUDA_CHECK(cudaExecutionCtxStreamCreate(&green_ctx_stream,
 my_kernel<<<grid_dim, block_dim, 0, green_ctx_stream>>>();
 CUDA_CHECK(cudaGetLastError());
 ```
+{% endraw %}
 
 鉴于 `green_ctx` 是一个绿色上下文，传递给上述流创建 API 的默认流创建标志等同于 `cudaStreamNonBlocking`。
 
@@ -671,6 +683,8 @@ int num_clusters= 0;
 CUDA_CHECK(cudaOccupancyMaxActiveClusters(&num_clusters, cluster_kernel, &config));
 std::cout << "Potential max. active clusters count is " << num_clusters << std::endl;
 ```
+{% endraw %}
+
 **验证绿色上下文的使用**
 
 除了通过经验观察受绿色上下文配置影响的内核执行时间外，用户还可以在一定程度上利用 [Nsight Systems](https://developer.nvidia.com/nsight-systems) 或 [Nsight Compute](https://developer.nvidia.com/nsight-compute) 这些 CUDA 开发者工具来验证绿色上下文的正确使用。
