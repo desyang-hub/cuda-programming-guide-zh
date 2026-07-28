@@ -16,17 +16,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # mkdocs-material 的 git-revision-date-localized 插件需要完整历史
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'  # ✅ 新增：缓存 pip 依赖，加速构建
 
       - name: Install dependencies
-        run: |
-          pip install mkdocs mkdocs-material mkdocs-minify-plugin
+        run: pip install mkdocs mkdocs-material mkdocs-minify-plugin
 
-      - name: Build and deploy MkDocs
-        run: |
-          mkdocs gh-deploy --force --clean --verbose
+      - name: Build site
+        run: mkdocs build --clean --verbose  # ✅ 显式构建，产物输出到 ./site
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site       # 指定构建产物目录
+          force_orphan: true        # ✅ 关键：保持 gh-pages 为干净的孤儿分支，不积累历史
+          commit_message: "deploy: ${{ github.sha }}"  # 提交信息关联源码 commit
